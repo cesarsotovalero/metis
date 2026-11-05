@@ -1,0 +1,10 @@
+[package]
+name = "contextscope"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+[dependencies]
+cs-core = { path = "../cs-core" }
+cs-store = { path = "../cs-store" }
+serde_json.workspace = true
+clap.workspace = true

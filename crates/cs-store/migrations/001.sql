@@ -1,0 +1,12 @@
+BEGIN IMMEDIATE;
+CREATE TABLE migrations(version INTEGER PRIMARY KEY, sql_text TEXT NOT NULL);
+INSERT INTO migrations VALUES(1,'');
+CREATE TABLE sessions(id TEXT PRIMARY KEY, agent TEXT NOT NULL DEFAULT 'fixture', mode TEXT NOT NULL DEFAULT 'observe', capture_mode TEXT NOT NULL DEFAULT 'metadata', synthetic INTEGER NOT NULL DEFAULT 1 CHECK(synthetic=1));
+CREATE TABLE events(collector_seq INTEGER PRIMARY KEY AUTOINCREMENT, event_id TEXT NOT NULL UNIQUE, session_id TEXT NOT NULL REFERENCES sessions(id), producer_id TEXT NOT NULL, epoch TEXT NOT NULL, source_seq INTEGER, observed_at INTEGER NOT NULL, payload_json TEXT NOT NULL CHECK(json_valid(payload_json)), UNIQUE(producer_id,epoch,source_seq));
+CREATE INDEX events_session_time ON events(session_id,observed_at);
+CREATE TRIGGER events_immutable_update BEFORE UPDATE ON events BEGIN SELECT RAISE(ABORT,'immutable events'); END;
+CREATE TRIGGER events_immutable_delete BEFORE DELETE ON events BEGIN SELECT RAISE(ABORT,'immutable events'); END;
+CREATE TABLE requests(id TEXT NOT NULL, session_id TEXT NOT NULL REFERENCES sessions(id), upstream_id TEXT, provider TEXT, model TEXT, status TEXT NOT NULL, normalized_usage_json TEXT CHECK(json_valid(normalized_usage_json)), PRIMARY KEY(session_id,id));
+CREATE TABLE tool_calls(id TEXT NOT NULL, session_id TEXT NOT NULL REFERENCES sessions(id), parent_request_id TEXT, status TEXT NOT NULL, exit_code INTEGER, PRIMARY KEY(session_id,id));
+PRAGMA user_version=1;
+COMMIT;

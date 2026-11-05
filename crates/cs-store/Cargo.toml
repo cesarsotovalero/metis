@@ -1,0 +1,11 @@
+[package]
+name = "cs-store"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+[dependencies]
+cs-core = { path = "../cs-core" }
+cs-accounting = { path = "../cs-accounting" }
+rusqlite.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
