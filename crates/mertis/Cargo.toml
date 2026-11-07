@@ -8,3 +8,4 @@ cs-core = { path = "../cs-core" }
 cs-store = { path = "../cs-store" }
 serde_json.workspace = true
 clap.workspace = true
+cs-daemon = { path = "../cs-daemon" }
