@@ -6,13 +6,13 @@ Implemented the **section 25 first assignment**, with scoped deviations recorded
 |---|---|---|---|
 | Minimal four-crate workspace, pinned toolchain | [workspace](../Cargo.toml), [toolchain](../rust-toolchain.toml), [lock](../Cargo.lock), [CI](../.github/workflows/ci.yml) | full workspace checks | `cargo build --workspace --locked` |
 | Typed v1 event envelope, explicit measurement provenance | [core](../crates/cs-core/src/lib.rs), [wire schema](../schemas/event-v1.json) | `wire_round_trip_and_strict_privacy_boundary`; all JSONL fixtures | import any fixture below |
-| Cache/reasoning accounting, cumulative revisions, deltas, missingness, overflow | [accounting](../crates/cs-accounting/src/lib.rs) | four accounting tests; [cached](../fixtures/cached.jsonl) | `contextscope import --agent fixture --path fixtures/cached.jsonl` then `contextscope inspect cached --json` |
+| Cache/reasoning accounting, cumulative revisions, deltas, missingness, overflow | [accounting](../crates/cs-accounting/src/lib.rs) | four accounting tests; [cached](../fixtures/cached.jsonl) | `mertis import --agent fixture --path fixtures/cached.jsonl` then `mertis inspect cached --json` |
 | SQLite WAL, foreign keys, numbered migration, immutable events, materialized calls | [store](../crates/cs-store/src/lib.rs), [migration](../crates/cs-store/migrations/001.sql) | `migration_integrity_immutability_and_materialized_records`, `restart_and_newer_schema` | reimport the same trace after restarting CLI |
 | Atomic import, source deduplication, late events, conflicts | [store](../crates/cs-store/src/lib.rs) | `late_events_reconcile_and_source_duplicates_dedup`, `malformed_rollback_and_conflict`; [interrupted](../fixtures/interrupted.jsonl) | import interrupted twice; inspect interrupted |
-| 100-turn offline totals and synthetic labeling | [ordinary fixture](../fixtures/ordinary.jsonl), [CLI](../crates/contextscope/src/main.rs) | `dedup_and_100_turn_totals`, [CLI subprocess test](../crates/contextscope/tests/cli.rs) | README commands |
-| JSON and Markdown report, provenance and unavailable cost | [report](../crates/cs-core/src/lib.rs), [sample](sample-session.md) | CLI subprocess test and store accounting assertions | `contextscope inspect ordinary --json` or `contextscope inspect ordinary` |
+| 100-turn offline totals and synthetic labeling | [ordinary fixture](../fixtures/ordinary.jsonl), [CLI](../crates/mertis/src/main.rs) | `dedup_and_100_turn_totals`, [CLI subprocess test](../crates/mertis/tests/cli.rs) | README commands |
+| JSON and Markdown report, provenance and unavailable cost | [report](../crates/cs-core/src/lib.rs), [sample](sample-session.md) | CLI subprocess test and store accounting assertions | `mertis inspect ordinary --json` or `mertis inspect ordinary` |
 
-Use `target/debug/contextscope` after building, or the `cargo run --locked -p contextscope --` prefix from [README](../README.md). All demonstration imports should specify `--home /tmp/contextscope-demo` before the subcommand, or set `CONTEXTSCOPE_HOME`, to isolate test data.
+Use `target/debug/mertis` after building, or the `cargo run --locked -p mertis --` prefix from [README](../README.md). All demonstration imports should specify `--home /tmp/mertis-demo` before the subcommand, or set `MERTIS_HOME`, to isolate test data.
 
 ## Validation
 

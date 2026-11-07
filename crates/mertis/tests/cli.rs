@@ -1,6 +1,6 @@
 use std::{path::PathBuf, process::Command};
 fn cli(home: &std::path::Path, args: &[&str]) -> std::process::Output {
-    Command::new(env!("CARGO_BIN_EXE_contextscope"))
+    Command::new(env!("CARGO_BIN_EXE_mertis"))
         .arg("--home")
         .arg(home)
         .args(args)
@@ -9,7 +9,7 @@ fn cli(home: &std::path::Path, args: &[&str]) -> std::process::Output {
 }
 #[test]
 fn offline_import_report_and_atomic_malformed_input() {
-    let home = std::env::temp_dir().join(format!("contextscope-cli-{}", std::process::id()));
+    let home = std::env::temp_dir().join(format!("mertis-cli-{}", std::process::id()));
     let fixture = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/ordinary.jsonl");
     let import = cli(
         &home,

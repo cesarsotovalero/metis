@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/cs-core", "crates/cs-accounting", "crates/cs-store", "crates/contextscope"]
+members = ["crates/cs-core", "crates/cs-accounting", "crates/cs-store", "crates/mertis"]
 resolver = "2"
 [workspace.package]
 version = "0.1.0"
