@@ -282,8 +282,7 @@ mod tests {
     }
     #[test]
     fn restart_and_newer_schema() {
-        let p =
-            std::env::temp_dir().join(format!("contextscope-test-{}.sqlite", std::process::id()));
+        let p = std::env::temp_dir().join(format!("mertis-test-{}.sqlite", std::process::id()));
         {
             let mut s = Store::open(&p).unwrap();
             s.import(&fixture("cached")).unwrap();

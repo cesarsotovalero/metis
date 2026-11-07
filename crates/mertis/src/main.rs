@@ -9,7 +9,7 @@ use std::{
 #[derive(Parser)]
 #[command(version, about = "Offline synthetic coding-agent session observer")]
 struct Cli {
-    #[arg(long, global = true, env = "CONTEXTSCOPE_HOME")]
+    #[arg(long, global = true, env = "MERTIS_HOME")]
     home: Option<PathBuf>,
     #[command(subcommand)]
     command: Command,
@@ -34,7 +34,7 @@ enum Command {
 }
 fn main() {
     if let Err(e) = run() {
-        eprintln!("contextscope: {e}");
+        eprintln!("mertis: {e}");
         std::process::exit(1);
     }
 }
@@ -42,13 +42,9 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
     let home = cli
         .home
-        .or_else(|| {
-            std::env::var_os("XDG_DATA_HOME").map(|p| PathBuf::from(p).join("contextscope"))
-        })
-        .or_else(|| {
-            std::env::var_os("HOME").map(|p| PathBuf::from(p).join(".local/share/contextscope"))
-        })
-        .ok_or("set --home or CONTEXTSCOPE_HOME")?;
+        .or_else(|| std::env::var_os("XDG_DATA_HOME").map(|p| PathBuf::from(p).join("mertis")))
+        .or_else(|| std::env::var_os("HOME").map(|p| PathBuf::from(p).join(".local/share/mertis")))
+        .ok_or("set --home or MERTIS_HOME")?;
     std::fs::create_dir_all(&home)?;
     #[cfg(unix)]
     {
