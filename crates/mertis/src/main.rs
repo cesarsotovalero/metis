@@ -26,11 +26,60 @@ enum Command {
         #[arg(long)]
         path: PathBuf,
     },
+    Daemon {
+        #[command(subcommand)]
+        command: DaemonCommand,
+    },
     Inspect {
         id: String,
         #[arg(long)]
         json: bool,
     },
+}
+#[derive(Subcommand)]
+enum DaemonCommand {
+    /// Run the local observer daemon in the foreground.
+    Start,
+    /// Print authenticated daemon health as JSON.
+    Status,
+    /// Request graceful daemon shutdown.
+    Stop,
+}
+fn daemon(
+    home: &std::path::Path,
+    command: DaemonCommand,
+) -> Result<(), Box<dyn std::error::Error>> {
+    if matches!(command, DaemonCommand::Start) {
+        cs_daemon::run(home, cs_daemon::Config::default())?;
+        return Ok(());
+    }
+    #[cfg(target_os = "linux")]
+    {
+        use cs_daemon::{
+            protocol::{Operation, Reply},
+            Client,
+        };
+        let mut client = Client::connect(
+            home,
+            "mertis-cli",
+            &format!("cli-{}", std::process::id()),
+            None,
+        )?;
+        let reply = match command {
+            DaemonCommand::Status => client.request(Operation::Health {})?,
+            DaemonCommand::Stop => client.request(Operation::Shutdown {})?,
+            DaemonCommand::Start => unreachable!(),
+        };
+        if !matches!(reply, Reply::Health { .. } | Reply::Shutdown {}) {
+            return Err("unexpected daemon control response".into());
+        }
+        println!("{}", serde_json::to_string_pretty(&reply)?);
+        Ok(())
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        Err("daemon IPC is currently supported on Linux only".into())
+    }
 }
 fn main() {
     if let Err(e) = run() {
@@ -45,6 +94,9 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         .or_else(|| std::env::var_os("XDG_DATA_HOME").map(|p| PathBuf::from(p).join("mertis")))
         .or_else(|| std::env::var_os("HOME").map(|p| PathBuf::from(p).join(".local/share/mertis")))
         .ok_or("set --home or MERTIS_HOME")?;
+    if let Command::Daemon { command } = cli.command {
+        return daemon(&home, command);
+    }
     std::fs::create_dir_all(&home)?;
     #[cfg(unix)]
     {
@@ -53,6 +105,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     }
     let mut store = Store::open(&home.join("ledger.sqlite3"))?;
     match cli.command {
+        Command::Daemon { .. } => unreachable!(),
         Command::Import {
             agent: Agent::Fixture,
             path,
@@ -62,28 +115,38 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             if file.metadata()?.len() > 32 * 1024 * 1024 {
                 return Err("fixture exceeds 32 MiB limit".into());
             }
-            let reader = BufReader::new(file.take(32 * 1024 * 1024 + 1));
+            let mut reader = BufReader::new(file);
             let mut events = Vec::new();
-            for (index, line) in reader.lines().enumerate() {
-                let line = line?;
-                if line.len() > 65536 {
-                    return Err(format!("line {} exceeds limit", index + 1).into());
+            let mut bytes_read = 0_u64;
+            loop {
+                // Bound allocation before reading; allow CRLF outside the JSON record cap.
+                let mut line = Vec::new();
+                let read = (&mut reader).take(65539).read_until(b'\n', &mut line)?;
+                if read == 0 {
+                    break;
                 }
-                let e: EventEnvelope = serde_json::from_str(&line)
-                    .map_err(|_| format!("invalid fixture at line {}", index + 1))?;
+                bytes_read += read as u64;
+                if bytes_read > 32 * 1024 * 1024 {
+                    return Err("fixture exceeds 32 MiB limit".into());
+                }
+                if line.last() == Some(&b'\n') {
+                    line.pop();
+                }
+                if line.last() == Some(&b'\r') {
+                    line.pop();
+                }
+                if line.len() > 65536 {
+                    return Err(format!("line {} exceeds limit", events.len() + 1).into());
+                }
+                let e: EventEnvelope = serde_json::from_slice(&line)
+                    .map_err(|_| format!("invalid fixture at line {}", events.len() + 1))?;
                 e.validate()?;
                 events.push(e);
             }
-            // Validate accounting before committing the file to its persistent ledger.
-            let mut validation = Store::open(std::path::Path::new(":memory:"))?;
-            validation.import(&events)?;
             let ids = events
                 .iter()
                 .map(|e| e.session_id.clone())
                 .collect::<std::collections::BTreeSet<_>>();
-            for id in &ids {
-                validation.inspect(id)?;
-            }
             let inserted = store.import(&events)?;
             println!(
                 "Synthetic fixture: {inserted} new events; sessions: {}",
